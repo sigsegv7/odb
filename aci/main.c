@@ -27,20 +27,70 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#define _DEFAULT_SOURCE
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/types.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <dirent.h>
 #include <poll.h>
+#include "drum/drum.h"
+#include "aci/state.h"
 
 #define IPC_BACKLOG 32
 #define POLL_FD_COUNT 16
 #define IPC_PATH "/tmp/odb.d"
 
+static char *drum_dir = NULL;
 static struct pollfd fds[POLL_FD_COUNT];
+static struct aci_state state;
+
+/*
+ * Enumerate each available drum
+ */
+static void
+drum_enumerate(void)
+{
+    char pathbuf[128];
+    struct drum *drum = NULL;
+    struct dirent *dirent;
+    DIR *dir;
+
+    if ((dir = opendir(drum_dir)) == NULL) {
+        perror("opendir");
+        return;
+    }
+
+    while ((dirent = readdir(dir)) != NULL) {
+        if (dirent->d_name[0] == '.') {
+            continue;
+        }
+
+        if (dirent->d_type != DT_DIR) {
+            continue;
+        }
+
+        drum = malloc(sizeof(*drum));
+        if (drum == NULL) {
+            printf("fatal: drum allocation failure; out of memory\n");
+            exit(1);
+        }
+
+        memset(drum, 0, sizeof(*drum));
+        ++state.drum_count;
+        snprintf(pathbuf, sizeof(pathbuf), "%s/%s", drum_dir, dirent->d_name);
+
+        drum->path = strdup(pathbuf);
+        printf("[ drum %zu ] @ %s\n", state.drum_count, pathbuf);
+        TAILQ_INSERT_TAIL(&state.drum_list, drum, link);
+    }
+
+    closedir(dir);
+}
 
 /*
  * Allocate a file descriptor from the pollfd
@@ -168,9 +218,23 @@ run(void)
 }
 
 int
-main(void)
+main(int argc, char **argv)
 {
     pid_t child;
+
+    if (argc < 2) {
+        printf("fatal: expected drum directory as argument\n");
+        return -1;
+    }
+
+    drum_dir = argv[1];
+    if (access(drum_dir, F_OK) != 0) {
+        printf("fatal: could not access \"%s\"\n", drum_dir);
+        return -1;
+    }
+
+    TAILQ_INIT(&state.drum_list);
+    drum_enumerate();
 
     memset(fds, -1, sizeof(fds));
     child = fork();
