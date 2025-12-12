@@ -178,10 +178,8 @@ ipc_read(int client_fd, uint16_t poll_idx)
     pkt = (struct aci_pkt *)buf;
     switch (pkt->op) {
     case ACI_CMD_NOP:
-        printf("got nop\n");
         break;
     case ACI_CMD_QUERY:
-        printf("got query\n");
         aci_send_drums(client_fd);
         break;
     default:
