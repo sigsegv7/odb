@@ -35,6 +35,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "aci/proto.h"
+#include "drum/drum.h"
 
 /* Various prefixes used for operations */
 #define HELP_PREFIX    'h'
@@ -124,8 +125,9 @@ db_nop(void)
 static void
 db_query(void)
 {
-    char buf[1];
+    char name[DRUM_NAMELEN];
     char dmmy[1];
+    uint32_t row_id = 0;
     struct aci_pkt *pkt;
     int error;
 
@@ -144,19 +146,22 @@ db_query(void)
     send(ssockfd, pkt, sizeof(*pkt) + pkt->length, 0);
     aci_pkt_free(pkt);
 
+    printf("-----------------------------------------\n");
     /* Recieve the list of paths */
-    while (recv(ssockfd, buf, sizeof(buf), 0) > 0) {
-        if (buf[0] == EOF) {
+    while (recv(ssockfd, name, DRUM_NAMELEN, 0) > 0) {
+        if (name[0] == EOF) {
             break;
         }
 
-        if (buf[0] == '\0') {
-            printf("\n");
-            continue;
-        }
-
-        printf("%c", buf[0]);
+        printf("%d ~ %s\n", row_id, name);
+        ++row_id;
     }
+
+    if (row_id == 0) {
+        printf("** NO ENTRIES **\n");
+    }
+    printf("-----------------------------------------\n");
+    printf("received %d entries\n", row_id);
 }
 
 static void

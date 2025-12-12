@@ -34,13 +34,17 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#define DRUM_NAMELEN 16
+
 /*
  * Represents a single drum
  *
+ * @name: Name component of drum
  * @path: Path of drum
  * @link: Queue link for ACI
  */
 struct drum {
+    char name[DRUM_NAMELEN];
     const char *path;
     TAILQ_ENTRY(drum) link;
 };

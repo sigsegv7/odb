@@ -56,6 +56,7 @@ static struct aci_state state;
 static void
 drum_enumerate(void)
 {
+    size_t name_len;
     char pathbuf[128];
     struct drum *drum = NULL;
     struct dirent *dirent;
@@ -75,6 +76,12 @@ drum_enumerate(void)
             continue;
         }
 
+        /* Truncate name length if needed */
+        name_len = strlen(dirent->d_name);
+        if (name_len >= DRUM_NAMELEN) {
+            name_len = DRUM_NAMELEN;
+        }
+
         drum = malloc(sizeof(*drum));
         if (drum == NULL) {
             printf("fatal: drum allocation failure; out of memory\n");
@@ -86,6 +93,7 @@ drum_enumerate(void)
         snprintf(pathbuf, sizeof(pathbuf), "%s/%s", drum_dir, dirent->d_name);
 
         drum->path = strdup(pathbuf);
+        memcpy(drum->name, dirent->d_name, name_len);
         printf("[ drum %zu ] @ %s\n", state.drum_count, pathbuf);
         TAILQ_INSERT_TAIL(&state.drum_list, drum, link);
     }
@@ -148,12 +156,12 @@ ipc_accept(int ssockfd)
 static void
 aci_send_drums(int client_fd)
 {
-    char pad[8];
+    char pad[DRUM_NAMELEN];
     struct drum *drum;
 
     memset(pad, EOF, sizeof(pad));
     TAILQ_FOREACH(drum, &state.drum_list, link) {
-        send(client_fd, drum->path, strlen(drum->path) + 1, 0);
+        send(client_fd, drum->name, DRUM_NAMELEN, 0);
     }
 
     /* EOF pad denotes end of list */
