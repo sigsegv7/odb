@@ -45,7 +45,8 @@
 #define PREFIX_LEN 2
 
 /* Commands used with command prefix */
-#define CMD_NOP "NOP"
+#define CMD_NOP     "NOP"
+#define CMD_QUERY   "QUERY"
 
 /* Environment defines */
 #define IPC_PATH "/tmp/odb.d"
@@ -121,6 +122,44 @@ db_nop(void)
 }
 
 static void
+db_query(void)
+{
+    char buf[1];
+    char dmmy[1];
+    struct aci_pkt *pkt;
+    int error;
+
+    error = aci_pkt_init(
+        ACI_CMD_QUERY,
+        ACI_TYPE_NONE,
+        0,
+        dmmy,
+        &pkt
+    );
+
+    if (error != 0) {
+        perror("aci_pkt_init");
+    }
+
+    send(ssockfd, pkt, sizeof(*pkt) + pkt->length, 0);
+    aci_pkt_free(pkt);
+
+    /* Recieve the list of paths */
+    while (recv(ssockfd, buf, sizeof(buf), 0) > 0) {
+        if (buf[0] == EOF) {
+            break;
+        }
+
+        if (buf[0] == '\0') {
+            printf("\n");
+            continue;
+        }
+
+        printf("%c", buf[0]);
+    }
+}
+
+static void
 db_command(const char *input)
 {
     size_t input_len;
@@ -137,7 +176,12 @@ db_command(const char *input)
             db_nop();
             break;
         }
-        break;
+    case 'Q':
+        if (strncmp(input, CMD_QUERY, input_len - 1) == 0) {
+            printf("[*] sending query\n");
+            db_query();
+            break;
+        }
     default:
         unknown_command();
         break;

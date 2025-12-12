@@ -40,6 +40,7 @@
 #include <poll.h>
 #include "drum/drum.h"
 #include "aci/state.h"
+#include "aci/proto.h"
 
 #define IPC_BACKLOG 32
 #define POLL_FD_COUNT 16
@@ -140,9 +141,29 @@ ipc_accept(int ssockfd)
     fd->events = POLLIN;
 }
 
+/*
+ * Send a list of drum paths to the requesting
+ * client
+ */
+static void
+aci_send_drums(int client_fd)
+{
+    char pad[8];
+    struct drum *drum;
+
+    memset(pad, EOF, sizeof(pad));
+    TAILQ_FOREACH(drum, &state.drum_list, link) {
+        send(client_fd, drum->path, strlen(drum->path) + 1, 0);
+    }
+
+    /* EOF pad denotes end of list */
+    send(client_fd, pad, sizeof(pad), 0);
+}
+
 static void
 ipc_read(int client_fd, uint16_t poll_idx)
 {
+    struct aci_pkt *pkt;
     char buf[256];
     ssize_t len;
 
@@ -154,7 +175,18 @@ ipc_read(int client_fd, uint16_t poll_idx)
         return;
     }
 
-    printf("got %zd bytes\n", len);
+    pkt = (struct aci_pkt *)buf;
+    switch (pkt->op) {
+    case ACI_CMD_NOP:
+        printf("got nop\n");
+        break;
+    case ACI_CMD_QUERY:
+        printf("got query\n");
+        aci_send_drums(client_fd);
+        break;
+    default:
+        printf("got unknown operation\n");
+    }
 }
 
 static void
