@@ -92,4 +92,11 @@ int aci_pkt_init(
     struct aci_pkt **res
 );
 
+/*
+ * Deallocate a packet from memory
+ *
+ * @pkt: Packet to free
+ */
+void aci_pkt_free(struct aci_pkt *pkt);
+
 #endif  /* !ACI_PROTO_H */

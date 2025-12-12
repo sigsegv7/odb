@@ -61,3 +61,13 @@ aci_pkt_init(aci_op_t op, aci_datatype_t type, size_t length,
     *res = pkt;
     return 0;
 }
+
+void
+aci_pkt_free(struct aci_pkt *pkt)
+{
+    if (pkt == NULL) {
+        return;
+    }
+
+    free(pkt);
+}
