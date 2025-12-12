@@ -77,6 +77,9 @@ help(void)
         "-- OSMORA database daemon --\n"
         "[h.]   Show this help menu\n"
         "[c.]   Perform a command\n"
+        "[l.]   Get link path\n"
+        "[v.]   Get version\n"
+        "[q.]   Quit client\n"
     );
 }
 
