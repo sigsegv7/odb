@@ -7,7 +7,7 @@ CC = clang
 
 .PHONY: all
 all: $(OFILES)
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o ../$(CLIENT_OUT)
+	$(CC) $(CFLAGS) $^ $(LDFLAGS) -o ../$(CLIENT_OUT)
 
 %.o: %.c
 	$(CC) -c $(CFLAGS) $< -o $@

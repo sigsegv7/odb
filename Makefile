@@ -1,5 +1,5 @@
 .PHONY: all
-all: lib drum client proto aci
+all: lib drum proto aci client
 
 .PHONY: aci
 aci:

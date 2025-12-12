@@ -34,6 +34,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "aci/proto.h"
 
 /* Various prefixes used for operations */
 #define HELP_PREFIX    'h'
@@ -88,12 +89,49 @@ unknown_command(void)
     );
 }
 
+/*
+ * Send a no-operation packet to the ACI
+ * daemon
+ */
+static void
+db_nop(void)
+{
+    char pad[8];
+    struct aci_pkt *pkt;
+    int error;
+
+    memset(pad, 0, sizeof(pad));
+    error = aci_pkt_init(
+        ACI_CMD_NOP,
+        ACI_TYPE_NONE,
+        sizeof(pad),
+        pad,
+        &pkt
+    );
+
+    if (error != 0) {
+        perror("aci_pkt_init");
+    }
+
+    send(ssockfd, pkt, sizeof(*pkt) + pkt->length, 0);
+    aci_pkt_free(pkt);
+}
+
 static void
 db_command(const char *input)
 {
+    size_t input_len;
+
+    if (input == NULL) {
+        return;
+    }
+
+    input_len = strlen(input);
     switch (*input) {
     case 'N':
-        if (strcmp(input, CMD_NOP) == 0) {
+        if (strncmp(input, CMD_NOP, input_len - 1) == 0) {
+            printf("[*] sending nop\n");
+            db_nop();
             break;
         }
         break;
