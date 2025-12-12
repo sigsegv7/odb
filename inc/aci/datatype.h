@@ -27,61 +27,23 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef ACI_PROTO_H
-#define ACI_PROTO_H 1
-
-#include <stdint.h>
-#include <stddef.h>
-#include "aci/datatype.h"
+#ifndef ACI_DATATYPE_H
+#define ACI_DATATYPE_H
 
 /*
- * Valid ACI commands
+ * Represents valid types to be used with
+ * operations
  *
- * @ACI_CMD_NOP: No-operation [does nothing]
- * @ACI_CMD_STORE: Store a piece of data to a key
- * @ACI_CMD_QUERY: Query a key
+ * @ACI_TYPE_NONE: No type associated
+ * @ACI_TYPE_INTEGER: Integer type
+ * @ACPI_TYPE_STRING: String type
+ * @ACPI_TYPE_BOOL: Boolean
  */
 typedef enum {
-    ACI_CMD_NOP,
-    ACI_CMD_STORE,
-    ACI_CMD_QUERY
-} aci_op_t;
+    ACI_TYPE_NONE,
+    ACI_TYPE_INTEGER,
+    ACI_TYPE_STRING,
+    ACI_TYPE_BOOL
+} aci_datatype_t;
 
-/*
- * An access control interface packet
- *
- * @op: Operation code
- * @type: Operation datatype
- * @length: Length of operation
- * @data: Data associated with operation
- */
-struct aci_pkt {
-    aci_op_t op;
-    aci_datatype_t type;
-    size_t length;
-    char data[];
-};
-
-/*
- * Initialize an ACI packet
- *
- * @op: Operation to associate with packet
- * @type: Datatype associated with operation
- * @length: Length of data
- * @data: Data to bundle with packet
- * @res: Result packet is written here
- */
-int aci_pkt_init(
-    aci_op_t op, aci_datatype_t type,
-    size_t length, const void *data,
-    struct aci_pkt **res
-);
-
-/*
- * Deallocate a packet from memory
- *
- * @pkt: Packet to free
- */
-void aci_pkt_free(struct aci_pkt *pkt);
-
-#endif  /* !ACI_PROTO_H */
+#endif  /* !ACI_DATATYPE_H */
