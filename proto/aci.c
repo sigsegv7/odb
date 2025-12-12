@@ -38,7 +38,7 @@ aci_pkt_init(aci_op_t op, aci_datatype_t type, size_t length,
 {
     struct aci_pkt *pkt;
 
-    if (length == 0 || data == NULL) {
+    if (data == NULL) {
         errno = -EINVAL;
         return -1;
     }
@@ -57,7 +57,9 @@ aci_pkt_init(aci_op_t op, aci_datatype_t type, size_t length,
     pkt->op = op;
     pkt->type = type;
     pkt->length = length;
-    memcpy(pkt->data, data, length);
+    if (length > 0) {
+        memcpy(pkt->data, data, length);
+    }
     *res = pkt;
     return 0;
 }
