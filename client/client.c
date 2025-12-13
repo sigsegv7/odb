@@ -222,11 +222,6 @@ parse_input(const char *buffer)
     }
 
     prefix = buffer[0];
-    if (buffer[2] == '\0') {
-        printf("* Expected input\n");
-        return;
-    }
-
     switch (prefix) {
     case VERSION_PREFIX:
         printf("%s\n", CLIENT_VERSION);
