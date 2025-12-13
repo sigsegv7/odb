@@ -167,22 +167,26 @@ db_query(void)
 static void
 db_command(const char *input)
 {
-    size_t input_len;
+    char *p, *p1;
 
     if (input == NULL) {
         return;
     }
 
-    input_len = strlen(input);
+    if ((p = strdup(input)) == NULL) {
+        return;
+    }
+
+    p1 = strtok(p, " ");
     switch (*input) {
     case 'N':
-        if (strncmp(input, CMD_NOP, input_len - 1) == 0) {
+        if (strncmp(p1, CMD_NOP, sizeof(CMD_NOP)) == 0) {
             printf("[*] sending nop\n");
             db_nop();
             break;
         }
     case 'Q':
-        if (strncmp(input, CMD_QUERY, input_len - 1) == 0) {
+        if (strncmp(p1, CMD_QUERY, sizeof(CMD_QUERY)) == 0) {
             printf("[*] sending query\n");
             db_query();
             break;
@@ -191,6 +195,8 @@ db_command(const char *input)
         unknown_command();
         break;
     }
+
+    free(p);
 }
 
 static void
@@ -285,10 +291,12 @@ main(void)
     for (;;) {
         printf("odb~> ");
         fgets(buf, sizeof(buf), stdin);
+
         if (buf[0] == '\n') {
             continue;
         }
 
+        buf[strcspn(buf, "\n")] = '\0';
         parse_input(buf);
     }
 
