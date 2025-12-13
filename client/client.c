@@ -34,6 +34,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "aci/datatype.h"
 #include "aci/proto.h"
 #include "drum/drum.h"
 
@@ -48,10 +49,22 @@
 /* Commands used with command prefix */
 #define CMD_NOP     "NOP"
 #define CMD_QUERY   "QUERY"
+#define CMD_CREATE  "CREATE"
+
+/* Object types */
+#define OBJECT_DRUM "DRUM"
 
 /* Environment defines */
 #define IPC_PATH "/tmp/odb.d"
 #define CLIENT_VERSION "v0.0.1"
+
+static const char *typetab[] = {
+    [ACI_TYPE_NONE] = "NONE",
+    [ACI_TYPE_INTEGER] = "INTEGER",
+    [ACI_TYPE_STRING] = "STRING",
+    [ACI_TYPE_BOOL] = "BOOL",
+    [ACI_TYPE_DRUM] = "DRUM"
+};
 
 static int ssockfd = -1;
 
@@ -92,6 +105,34 @@ unknown_command(void)
         "* Unknown command\n"
         "[?]: Use the 'h.' prefix for help\n"
     );
+}
+
+static void
+aci_create(const char *name, aci_datatype_t type)
+{
+    int error;
+    size_t name_len;
+    struct aci_pkt *pkt;
+
+    if (name == NULL) {
+        return;
+    }
+
+    name_len = strlen(name);
+    error = aci_pkt_init(
+        ACI_CMD_CREATE,
+        type,
+        name_len,
+        name,
+        &pkt
+    );
+
+    if (error != 0) {
+        perror("aci_pkt_init");
+    }
+
+    send(ssockfd, pkt, sizeof(*pkt) + pkt->length, 0);
+    aci_pkt_free(pkt);
 }
 
 /*
@@ -164,10 +205,38 @@ db_query(void)
     printf("received %d entries\n", row_id);
 }
 
+/*
+ * Create a database object
+ */
+static int
+db_create(char *object, char *name)
+{
+    aci_datatype_t type = ACI_TYPE_NONE;
+
+    if (object == NULL || name == NULL) {
+        return -1;
+    }
+
+    switch (*object) {
+    case 'D':
+        if (strncmp(object, OBJECT_DRUM, sizeof(OBJECT_DRUM)) == 0) {
+            type = ACI_TYPE_DRUM;
+            break;
+        }
+    default:
+        return -1;
+    }
+
+    printf("* Creating %s [%s]\n", name, typetab[type]);
+    aci_create(name, type);
+    return 0;
+}
+
 static void
 db_command(const char *input)
 {
     char *p, *p1;
+    char *object, *name;
 
     if (input == NULL) {
         return;
@@ -178,6 +247,9 @@ db_command(const char *input)
     }
 
     p1 = strtok(p, " ");
+    object = NULL;
+    name = NULL;
+
     switch (*input) {
     case 'N':
         if (strncmp(p1, CMD_NOP, sizeof(CMD_NOP)) == 0) {
@@ -191,10 +263,32 @@ db_command(const char *input)
             db_query();
             break;
         }
+    case 'C':
+        if (strncmp(p1, CMD_CREATE, sizeof(CMD_CREATE)) == 0) {
+            /* Grab the object type */
+            if ((object = strtok(NULL, " ")) == NULL)
+                break;
+            if ((object = strdup(object)) == NULL)
+                break;
+
+            /* Grab the name */
+            if ((name = strtok(NULL, " ")) == NULL)
+                break;
+            if ((name = strdup(name)) == NULL)
+                break;
+
+            db_create(object, name);
+            break;
+        }
     default:
         unknown_command();
         break;
     }
+
+    if (object != NULL)
+        free(object);
+    if (name != NULL)
+        free(name);
 
     free(p);
 }
