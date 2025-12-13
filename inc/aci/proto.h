@@ -44,7 +44,8 @@
 typedef enum {
     ACI_CMD_NOP,
     ACI_CMD_STORE,
-    ACI_CMD_QUERY
+    ACI_CMD_QUERY,
+    ACI_CMD_CREATE
 } aci_op_t;
 
 /*

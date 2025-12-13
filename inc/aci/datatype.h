@@ -38,12 +38,14 @@
  * @ACI_TYPE_INTEGER: Integer type
  * @ACI_TYPE_STRING: String type
  * @ACI_TYPE_BOOL: Boolean
+ * @ACI_TYPE_DRUM: Drum type
  */
 typedef enum {
     ACI_TYPE_NONE,
     ACI_TYPE_INTEGER,
     ACI_TYPE_STRING,
-    ACI_TYPE_BOOL
+    ACI_TYPE_BOOL,
+    ACI_TYPE_DRUM
 } aci_datatype_t;
 
 #endif  /* !ACI_DATATYPE_H */

@@ -29,6 +29,7 @@
 
 #define _DEFAULT_SOURCE
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/un.h>
 #include <sys/types.h>
 #include <stdint.h>
@@ -45,10 +46,37 @@
 #define IPC_BACKLOG 32
 #define POLL_FD_COUNT 16
 #define IPC_PATH "/tmp/odb.d"
+#define DRUM_MODE 0700
 
 static char *drum_dir = NULL;
 static struct pollfd fds[POLL_FD_COUNT];
 static struct aci_state state;
+
+/*
+ * Allocate a new drum
+ *
+ * XXX: Path buffers are strdup()'d
+ */
+struct drum *
+drum_alloc(const char *name, const char *path)
+{
+    struct drum *drum;
+    size_t name_len;
+
+    drum = malloc(sizeof(*drum));
+    if (drum == NULL) {
+        return NULL;
+    }
+
+    name_len = strlen(name);
+    if (name_len >= DRUM_NAMELEN) {
+        name_len = DRUM_NAMELEN - 1;
+    }
+
+    drum->path = strdup(path);
+    memcpy(drum->name, name, name_len);
+    return drum;
+}
 
 /*
  * Enumerate each available drum
@@ -82,18 +110,13 @@ drum_enumerate(void)
             name_len = DRUM_NAMELEN;
         }
 
-        drum = malloc(sizeof(*drum));
+        ++state.drum_count;
+        snprintf(pathbuf, sizeof(pathbuf), "%s/%s", drum_dir, dirent->d_name);
+        drum = drum_alloc(dirent->d_name, pathbuf);
         if (drum == NULL) {
             printf("fatal: drum allocation failure; out of memory\n");
             exit(1);
         }
-
-        memset(drum, 0, sizeof(*drum));
-        ++state.drum_count;
-        snprintf(pathbuf, sizeof(pathbuf), "%s/%s", drum_dir, dirent->d_name);
-
-        drum->path = strdup(pathbuf);
-        memcpy(drum->name, dirent->d_name, name_len);
         printf("[ drum %zu ] @ %s\n", state.drum_count, pathbuf);
         TAILQ_INSERT_TAIL(&state.drum_list, drum, link);
     }
@@ -169,6 +192,46 @@ aci_send_drums(int client_fd)
 }
 
 static void
+aci_create_drum(const char *name)
+{
+    struct drum *drum;
+    char path[256];
+
+    if (name == NULL || drum_dir == NULL) {
+        return;
+    }
+
+    snprintf(path, sizeof(path), "%s/%s", drum_dir, name);
+    drum = drum_alloc(name, path);
+    if (drum == NULL) {
+        printf("error: failed to allocate \"%s\" [drum]\n", path);
+        return;
+    }
+
+    mkdir(path, DRUM_MODE);
+    TAILQ_INSERT_TAIL(&state.drum_list, drum, link);
+}
+
+static void
+aci_handle_create(struct aci_pkt *pkt)
+{
+    char name[128];
+
+    if (pkt == NULL) {
+        return;
+    }
+
+    memcpy(name, pkt->data, pkt->length);
+    switch (pkt->type) {
+    case ACI_TYPE_DRUM:
+        aci_create_drum(name);
+        break;
+    default:
+        break;
+    }
+}
+
+static void
 ipc_read(int client_fd, uint16_t poll_idx)
 {
     struct aci_pkt *pkt;
@@ -189,6 +252,9 @@ ipc_read(int client_fd, uint16_t poll_idx)
         break;
     case ACI_CMD_QUERY:
         aci_send_drums(client_fd);
+        break;
+    case ACI_CMD_CREATE:
+        aci_handle_create(pkt);
         break;
     default:
         printf("got unknown operation\n");
