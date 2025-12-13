@@ -36,8 +36,8 @@
  *
  * @ACI_TYPE_NONE: No type associated
  * @ACI_TYPE_INTEGER: Integer type
- * @ACPI_TYPE_STRING: String type
- * @ACPI_TYPE_BOOL: Boolean
+ * @ACI_TYPE_STRING: String type
+ * @ACI_TYPE_BOOL: Boolean
  */
 typedef enum {
     ACI_TYPE_NONE,
