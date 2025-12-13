@@ -379,6 +379,7 @@ main(void)
     printf("-- odb client %s --\n", CLIENT_VERSION);
     for (;;) {
         printf("odb~> ");
+        memset(buf, 0, sizeof(buf));
         fgets(buf, sizeof(buf), stdin);
 
         if (buf[0] == '\n') {
